@@ -20,6 +20,10 @@
   --local-soft: #fbeee5;
   --game: #7b4fd8;
   --game-soft: #f0eaff;
+  --potter: #8e2f4f;
+  --potter-soft: #fdeaf0;
+  --horse: #8a6d1f;
+  --horse-soft: #f8f1d8;
   --radius: 14px;
   --shadow: 0 1px 2px rgba(20, 35, 30, .06), 0 6px 20px rgba(20, 35, 30, .06);
   --sans: "Segoe UI", Inter, system-ui, -apple-system, Roboto, sans-serif;
@@ -46,6 +50,10 @@
     --local-soft: #2b1e15;
     --game: #b699ff;
     --game-soft: #241d3c;
+    --potter: #f09ab8;
+    --potter-soft: #2e1420;
+    --horse: #d8bb63;
+    --horse-soft: #2a2415;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .35);
   }
 }
@@ -206,6 +214,10 @@ li { margin: 4px 0; }
 .block.life .tag { background: var(--green); color: #fff; }
 .block.game { background: var(--game-soft); border-color: var(--game); }
 .block.game .tag { background: var(--game); color: #fff; }
+.block.potter { background: var(--potter-soft); border-color: var(--potter); }
+.block.potter .tag { background: var(--potter); color: #fff; }
+.block.horse { background: var(--horse-soft); border-color: var(--horse); }
+.block.horse .tag { background: var(--horse); color: #fff; }
 .block.errata { background: var(--red-soft); border-color: var(--red); }
 .block.errata .tag { background: var(--red); color: #fff; }
 
