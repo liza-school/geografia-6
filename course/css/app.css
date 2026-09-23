@@ -260,6 +260,11 @@ li { margin: 4px 0; }
 .terms td { border-top: 1px solid var(--border); padding: 8px 6px; vertical-align: top; }
 .terms td:first-child { font-weight: 700; width: 34%; }
 
+/* Перелік Міжнародних років ООН: рік вузькою колонкою, назва — рештою. */
+.years { width: 100%; border-collapse: collapse; margin: 8px 0; }
+.years td { border-top: 1px solid var(--border); padding: 5px 6px; vertical-align: top; }
+.years td:first-child { font-weight: 700; width: 4.5em; color: var(--accent); }
+
 .book-wording {
   display: block;
   margin-top: 4px;

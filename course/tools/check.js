@@ -107,15 +107,15 @@ function connect(url) {
     evaluate("(async () => { location.hash = '" + hash + "'; await new Promise(r => setTimeout(r, 300)); return document.querySelectorAll('.block').length; })()");
 
   const cards = await evaluate("document.querySelectorAll('.card').length");
-  expect("головна намалювалась", cards === 6, "карток: " + cards);
+  expect("головна намалювалась", cards === 7, "карток: " + cards);
 
-  for (const id of ["p01", "p02", "p03", "p04", "p05", "test"]) {
+  for (const id of ["p01", "p02", "p03", "p04", "p05", "p06", "test"]) {
     const blocks = await go("#/l/" + id);
     expect("сторінка " + id + " намалювалась", blocks > 5, "блоків: " + blocks);
   }
 
   // правило проєкту: у кожному параграфі є врізка про Черкащину, про Україну та приклади з життя
-  for (const id of ["p01", "p02", "p03", "p04", "p05"]) {
+  for (const id of ["p01", "p02", "p03", "p04", "p05", "p06"]) {
     await go("#/l/" + id);
     const local = await evaluate(
       "document.querySelectorAll('.block.cherkasy').length + '/' + document.querySelectorAll('.block.ukraine').length" +
@@ -129,7 +129,7 @@ function connect(url) {
     expect("у " + id + " не менше трьох прикладів з життя", examples >= 3, "прикладів: " + examples);
   }
   // з § 5 додалися ще дві наскрізні врізки: Гоґвортс і стайня
-  for (const id of ["p05"]) {
+  for (const id of ["p05", "p06"]) {
     await go("#/l/" + id);
     const extra = await evaluate(
       "document.querySelectorAll('.block.potter').length + '/' + document.querySelectorAll('.block.horse').length"
@@ -159,7 +159,7 @@ function connect(url) {
   }
 
   // малюнки з підручника справді вантажаться
-  for (const id of ["p01", "p02", "p03", "p04", "p05"]) {
+  for (const id of ["p01", "p02", "p03", "p04", "p05", "p06"]) {
     await go("#/l/" + id);
     const imgs = await evaluate(
       "(async () => { const list = [...document.images];" +
