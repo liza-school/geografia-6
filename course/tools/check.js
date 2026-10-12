@@ -181,12 +181,14 @@ function connect(url) {
     expect("малюнки в " + id + " відкриваються", total > 0 && total === loaded, imgs);
   }
 
-  // Перевіряємо всі 48 нових завдань через DOM-контроли та ключі прогресу рушія.
+  // Перевіряємо завдання § 7–12 через DOM-контроли та ключі прогресу рушія.
   for (const lesson of lessonData.filter((item) => NEW_PARAGRAPHS.includes(item.id))) {
     await go("#/l/" + lesson.id);
     const questions = lesson.blocks.filter((b) => ["quiz", "multi", "order", "input"].includes(b.type));
-    expect("у " + lesson.id + " рівно 8 завдань з унікальними id",
-      questions.length === 8 && new Set(questions.map((b) => b.id)).size === 8, "завдань: " + questions.length);
+    const expectedQuestions = lesson.id === "p08" ? 11 : 8;
+    expect("у " + lesson.id + " рівно " + expectedQuestions + " завдань з унікальними id",
+      questions.length === expectedQuestions && new Set(questions.map((b) => b.id)).size === expectedQuestions,
+      "завдань: " + questions.length);
     expect("у " + lesson.id + " є всі чотири типи завдань",
       new Set(questions.map((b) => b.type)).size === 4);
     for (const [index, question] of questions.entries()) {
