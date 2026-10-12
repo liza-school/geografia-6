@@ -9,6 +9,17 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const vm = require("vm");
+
+const PARAGRAPHS = Array.from({ length: 12 }, (_, i) => "p" + String(i + 1).padStart(2, "0"));
+const NEW_PARAGRAPHS = PARAGRAPHS.slice(6);
+const lessonData = [];
+// Node vm читає чинний формат COURSE.addLesson без змін рушія.
+for (const id of PARAGRAPHS) {
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "js", "lessons", id + ".js"), "utf8"), {
+    COURSE: { addLesson: (lesson) => lessonData.push(lesson) },
+  });
+}
 
 const PORT = 9334;
 const TARGET =
@@ -107,15 +118,15 @@ function connect(url) {
     evaluate("(async () => { location.hash = '" + hash + "'; await new Promise(r => setTimeout(r, 300)); return document.querySelectorAll('.block').length; })()");
 
   const cards = await evaluate("document.querySelectorAll('.card').length");
-  expect("головна намалювалась", cards === 7, "карток: " + cards);
+  expect("головна намалювалась", cards === 13, "карток: " + cards);
 
-  for (const id of ["p01", "p02", "p03", "p04", "p05", "p06", "test"]) {
+  for (const id of [...PARAGRAPHS, "test"]) {
     const blocks = await go("#/l/" + id);
     expect("сторінка " + id + " намалювалась", blocks > 5, "блоків: " + blocks);
   }
 
   // правило проєкту: у кожному параграфі є врізка про Черкащину, про Україну та приклади з життя
-  for (const id of ["p01", "p02", "p03", "p04", "p05", "p06"]) {
+  for (const id of PARAGRAPHS) {
     await go("#/l/" + id);
     const local = await evaluate(
       "document.querySelectorAll('.block.cherkasy').length + '/' + document.querySelectorAll('.block.ukraine').length" +
@@ -129,7 +140,7 @@ function connect(url) {
     expect("у " + id + " не менше трьох прикладів з життя", examples >= 3, "прикладів: " + examples);
   }
   // з § 5 додалися ще дві наскрізні врізки: Гоґвортс і стайня
-  for (const id of ["p05", "p06"]) {
+  for (const id of PARAGRAPHS.slice(4)) {
     await go("#/l/" + id);
     const extra = await evaluate(
       "document.querySelectorAll('.block.potter').length + '/' + document.querySelectorAll('.block.horse').length"
@@ -159,7 +170,7 @@ function connect(url) {
   }
 
   // малюнки з підручника справді вантажаться
-  for (const id of ["p01", "p02", "p03", "p04", "p05", "p06"]) {
+  for (const id of PARAGRAPHS) {
     await go("#/l/" + id);
     const imgs = await evaluate(
       "(async () => { const list = [...document.images];" +
@@ -168,6 +179,50 @@ function connect(url) {
     );
     const [total, loaded] = String(imgs).split("/");
     expect("малюнки в " + id + " відкриваються", total > 0 && total === loaded, imgs);
+  }
+
+  // Перевіряємо всі 48 нових завдань через DOM-контроли та ключі прогресу рушія.
+  for (const lesson of lessonData.filter((item) => NEW_PARAGRAPHS.includes(item.id))) {
+    await go("#/l/" + lesson.id);
+    const questions = lesson.blocks.filter((b) => ["quiz", "multi", "order", "input"].includes(b.type));
+    expect("у " + lesson.id + " рівно 8 завдань з унікальними id",
+      questions.length === 8 && new Set(questions.map((b) => b.id)).size === 8, "завдань: " + questions.length);
+    expect("у " + lesson.id + " є всі чотири типи завдань",
+      new Set(questions.map((b) => b.type)).size === 4);
+    for (const [index, question] of questions.entries()) {
+      const verdict = await evaluate(
+        "(async () => { const q = " + JSON.stringify(question) + ";" +
+        " const b = document.querySelectorAll('.block.quiz,.block.multi,.block.order,.block.input')[" + index + "];" +
+        " if (q.type === 'quiz') b.querySelectorAll('.option')[q.answer].click();" +
+        " if (q.type === 'multi') { for (const answer of q.answers) b.querySelectorAll('.option')[answer].click(); b.querySelector('.btn').click(); }" +
+        " if (q.type === 'input') { b.querySelector('.answer-input').value = q.accept[0]; b.querySelector('.btn').click(); }" +
+        " if (q.type === 'order') { for (const item of q.items) { [...b.querySelectorAll('.chip')].find(c => c.textContent.startsWith(item)).click(); } }" +
+        " await new Promise(r => setTimeout(r, 50)); return b.querySelector('.verdict').className + '|' + b.querySelector('.done-mark').textContent; })()"
+      );
+      expect(lesson.id + "/" + question.id + " зараховує правильну відповідь", verdict === "verdict ok|✓", verdict);
+    }
+    const completed = await evaluate("JSON.parse(localStorage.getItem('geo6.v1')).done");
+    expect("усі відповіді " + lesson.id + " збережені в прогресі",
+      questions.every((q) => completed[lesson.id + ":" + q.id]));
+  }
+
+  // Через наявне CDP-підключення перевіряємо читання нових уроків на телефоні.
+  await call("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  for (const id of NEW_PARAGRAPHS) {
+    await go("#/l/" + id);
+    const overflow = await evaluate("document.documentElement.scrollWidth > window.innerWidth");
+    expect(id + " не має горизонтального прокручування на телефоні", !overflow);
+    if (process.env.GEO_CHECK_SCREENSHOTS) {
+      fs.mkdirSync(process.env.GEO_CHECK_SCREENSHOTS, { recursive: true });
+      const shot = await call("Page.captureScreenshot", { captureBeyondViewport: false });
+      fs.writeFileSync(path.join(process.env.GEO_CHECK_SCREENSHOTS, id + "-phone.png"), Buffer.from(shot.data, "base64"));
+    }
+  }
+  await call("Emulation.setDeviceMetricsOverride", { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
+  if (process.env.GEO_CHECK_SCREENSHOTS) {
+    await go("#/l/p12");
+    const shot = await call("Page.captureScreenshot", { captureBeyondViewport: false });
+    fs.writeFileSync(path.join(process.env.GEO_CHECK_SCREENSHOTS, "p12-desktop.png"), Buffer.from(shot.data, "base64"));
   }
 
   // одна відповідь: клік по правильному варіанту
@@ -221,6 +276,8 @@ function connect(url) {
   const errors = cdp.events
     .filter((event) => event.method === "Log.entryAdded" && event.params.entry.level === "error")
     .map((event) => event.params.entry.text);
+  errors.push(...cdp.events.filter((event) => event.method === "Runtime.exceptionThrown")
+    .map((event) => event.params.exceptionDetails.text));
   expect("у консолі немає помилок", errors.length === 0, errors.join(" | "));
 
   chrome.kill();
