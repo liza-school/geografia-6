@@ -11,7 +11,7 @@ const os = require("os");
 const path = require("path");
 const vm = require("vm");
 
-const PARAGRAPHS = Array.from({ length: 12 }, (_, i) => "p" + String(i + 1).padStart(2, "0"));
+const PARAGRAPHS = Array.from({ length: 17 }, (_, i) => "p" + String(i + 1).padStart(2, "0"));
 const NEW_PARAGRAPHS = PARAGRAPHS.slice(6);
 const lessonData = [];
 // Node vm читає чинний формат COURSE.addLesson без змін рушія.
@@ -118,7 +118,7 @@ function connect(url) {
     evaluate("(async () => { location.hash = '" + hash + "'; await new Promise(r => setTimeout(r, 300)); return document.querySelectorAll('.block').length; })()");
 
   const cards = await evaluate("document.querySelectorAll('.card').length");
-  expect("головна намалювалась", cards === 13, "карток: " + cards);
+  expect("головна намалювалась", cards === 18, "карток: " + cards);
 
   for (const id of [...PARAGRAPHS, "test"]) {
     const blocks = await go("#/l/" + id);
